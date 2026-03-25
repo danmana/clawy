@@ -84,11 +84,34 @@ class PetView: NSView {
     /// Called when the pet is clicked. Override behavior externally.
     var onClick: (() -> Void)?
 
+    private var isDragging = false
+    private var dragStartLocation: NSPoint = .zero
+
     override func mouseDown(with event: NSEvent) {
-        onClick?()
-        if currentState == .idle {
-            setState(.wave)
+        isDragging = false
+        dragStartLocation = event.locationInWindow
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard let window = self.window else { return }
+        isDragging = true
+
+        // Move window horizontally only (constrain Y to current position)
+        let currentFrame = window.frame
+        let deltaX = event.locationInWindow.x - dragStartLocation.x
+        let newOrigin = NSPoint(x: currentFrame.origin.x + deltaX, y: currentFrame.origin.y)
+        window.setFrameOrigin(newOrigin)
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        if !isDragging {
+            // It was a click, not a drag
+            onClick?()
+            if currentState == .idle {
+                setState(.wave)
+            }
         }
+        isDragging = false
     }
 
     override func rightMouseDown(with event: NSEvent) {
