@@ -1,0 +1,112 @@
+import AppKit
+
+/// The main view that displays and animates Clawd.
+class PetView: NSView {
+
+    private let imageView = NSImageView()
+    private var animationTimer: Timer?
+    private var currentFrames: [NSImage] = []
+    private var currentFrameIndex: Int = 0
+    private var currentState: AnimationState? = nil
+
+    // Preloaded frame caches
+    private var frameCache: [AnimationState: [NSImage]] = [:]
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        setup()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setup()
+    }
+
+    private func setup() {
+        // Preload all animation frames
+        for state in AnimationState.allCases {
+            frameCache[state] = SpriteRenderer.frames(for: state)
+        }
+
+        // Setup image view
+        imageView.frame = bounds
+        imageView.autoresizingMask = [.width, .height]
+        imageView.imageScaling = .scaleProportionallyUpOrDown
+        imageView.animates = false
+        addSubview(imageView)
+
+        // Start idle animation
+        setState(.idle)
+    }
+
+    func setState(_ state: AnimationState) {
+        guard state != currentState || !state.loops || currentState == nil else { return }
+
+        currentState = state
+        currentFrameIndex = 0
+        currentFrames = frameCache[state] ?? []
+
+        // Reset timer
+        animationTimer?.invalidate()
+        animationTimer = Timer.scheduledTimer(
+            withTimeInterval: state.frameDuration,
+            repeats: true
+        ) { [weak self] _ in
+            self?.advanceFrame()
+        }
+
+        // Show first frame immediately
+        if !currentFrames.isEmpty {
+            imageView.image = currentFrames[0]
+        }
+    }
+
+    private func advanceFrame() {
+        guard !currentFrames.isEmpty else { return }
+
+        currentFrameIndex += 1
+
+        if currentFrameIndex >= currentFrames.count {
+            if currentState?.loops == true {
+                currentFrameIndex = 0
+            } else {
+                // Non-looping animation finished, return to idle
+                setState(.idle)
+                return
+            }
+        }
+
+        imageView.image = currentFrames[currentFrameIndex]
+    }
+
+    // MARK: - Mouse Interaction
+
+    override func mouseDown(with event: NSEvent) {
+        // Click triggers a wave
+        if currentState == .idle {
+            setState(.wave)
+        }
+    }
+
+    override func rightMouseDown(with event: NSEvent) {
+        // Right-click context menu
+        let menu = NSMenu(title: "Clawy")
+
+        menu.addItem(withTitle: "Wave", action: #selector(doWave), keyEquivalent: "")
+            .target = self
+        menu.addItem(withTitle: "Walk", action: #selector(doWalk), keyEquivalent: "")
+            .target = self
+        menu.addItem(withTitle: "Think", action: #selector(doThink), keyEquivalent: "")
+            .target = self
+        menu.addItem(.separator())
+        menu.addItem(withTitle: "Quit Clawy", action: #selector(doQuit), keyEquivalent: "q")
+            .target = self
+
+        NSMenu.popUpContextMenu(menu, with: event, for: self)
+    }
+
+    @objc private func doWave() { setState(.wave) }
+    @objc private func doWalk() { setState(.walking) }
+    @objc private func doThink() { setState(.thinking) }
+    @objc private func doQuit() { NSApplication.shared.terminate(nil) }
+}
