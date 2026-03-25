@@ -2,6 +2,10 @@
 
 A pixel-art desktop pet for macOS that reacts to your [Claude Code](https://docs.anthropic.com/en/docs/claude-code) sessions.
 
+<p align="center">
+  <img src="assets/bashy-bashy.webp" alt="Clawy sitting on the Dock saying 'Bashy bashy?'" width="600">
+</p>
+
 Clawy sits on top of your Dock, shows cute thought bubbles when Claude asks for permission, and walks around when idle.
 
 ## Features
