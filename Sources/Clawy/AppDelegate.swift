@@ -114,12 +114,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        // Pick a random X position on the same screen
+        // Pick a random X within the center 60% of the screen (approximate Dock width)
         let screen = NSScreen.screens.first { $0.frame.contains(petWindow.frame.origin) }
             ?? NSScreen.screens[0]
-        let margin: CGFloat = 50
-        let minX = screen.frame.minX + margin
-        let maxX = screen.frame.maxX - margin - petWindow.frame.width
+        let screenWidth = screen.frame.width
+        let walkWidth = screenWidth * 0.6
+        let walkMargin = (screenWidth - walkWidth) / 2
+        let minX = screen.frame.minX + walkMargin
+        let maxX = screen.frame.minX + walkMargin + walkWidth - petWindow.frame.width
         let targetX = CGFloat.random(in: minX...maxX)
 
         walkTo(targetX: targetX)

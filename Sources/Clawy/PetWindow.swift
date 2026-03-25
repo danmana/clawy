@@ -60,7 +60,9 @@ class PetWindow: NSWindow {
         // If this screen has a bottom Dock, sit on top of it
         // Otherwise, sit at the bottom of the screen
         let dockTop = visibleFrame.minY
-        let y = (dockTop > fullFrame.minY + 10) ? dockTop - 30 : fullFrame.minY
+        // Offset by the empty space below the feet in the sprite
+        let feetOffset = CGFloat(SpriteRenderer.feetBottomPadding)
+        let y = (dockTop > fullFrame.minY + 10) ? dockTop - feetOffset : fullFrame.minY
 
         return NSPoint(
             x: fullFrame.midX - size.width / 2 + 100,

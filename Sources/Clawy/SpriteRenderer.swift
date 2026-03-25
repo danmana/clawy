@@ -17,6 +17,9 @@ struct SpriteRenderer {
     static var spriteWidth: Int { gridWidth * pixelSize }   // 108
     static var spriteHeight: Int { gridHeight * pixelSize } // 96
 
+    /// Empty rows below the feet (grid rows 11-15 = 5 rows)
+    static let feetBottomPadding: Int = (gridHeight - 11) * pixelSize
+
     // MARK: - Colors
 
     static let bodyColor      = NSColor(red: 0.85, green: 0.48, blue: 0.37, alpha: 1.0)  // salmon/orange
