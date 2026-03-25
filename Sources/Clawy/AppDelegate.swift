@@ -12,8 +12,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var idleWalkTimer: Timer?
     private var walkAnimationTimer: Timer?
     private var config = Config.load()
+    private var sizeMenuItems: [PetSize: NSMenuItem] = [:]
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Apply size from config
+        SpriteRenderer.pixelSize = config.size.pixelSize
+
         // Setup menu bar icon first (before policy switch)
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = statusItem.button {
@@ -36,6 +40,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         idleWalkMenuItem.target = self
         idleWalkMenuItem.state = config.idleWalk ? .on : .off
         menu.addItem(idleWalkMenuItem)
+
+        // Size submenu
+        let sizeMenu = NSMenu()
+        for (label, size) in [("Small", PetSize.small), ("Medium", PetSize.medium), ("Large", PetSize.large)] {
+            let item = NSMenuItem(title: label, action: #selector(changeSize(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = size.rawValue
+            item.state = (config.size == size) ? .on : .off
+            sizeMenu.addItem(item)
+            sizeMenuItems[size] = item
+        }
+        let sizeItem = NSMenuItem(title: "Size", action: nil, keyEquivalent: "")
+        sizeItem.submenu = sizeMenu
+        menu.addItem(sizeItem)
+
         menu.addItem(withTitle: "Reset Position", action: #selector(resetPosition), keyEquivalent: "r")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Clawy", action: #selector(quit), keyEquivalent: "q")
@@ -102,14 +121,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func startIdleWalk() {
-        guard config.idleWalk, !isWalking else {
+    private func startIdleWalk(force: Bool = false) {
+        guard !isWalking else { return }
+        guard force || config.idleWalk else {
             scheduleIdleWalk()
             return
         }
 
-        // Only walk when idle
-        guard petView.currentAnimationState == .idle else {
+        // Only walk when idle (unless forced from menu)
+        guard force || petView.currentAnimationState == .idle else {
             scheduleIdleWalk()
             return
         }
@@ -171,6 +191,59 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         config.save()
     }
 
+    @objc private func changeSize(_ sender: NSMenuItem) {
+        guard let rawValue = sender.representedObject as? String,
+              let newSize = PetSize(rawValue: rawValue),
+              newSize != config.size else { return }
+
+        config.size = newSize
+        config.save()
+
+        // Update checkmarks
+        for (size, item) in sizeMenuItems {
+            item.state = (size == newSize) ? .on : .off
+        }
+
+        // Rebuild pet with new size
+        SpriteRenderer.pixelSize = newSize.pixelSize
+        rebuildPet()
+    }
+
+    private func rebuildPet() {
+        let wasOriginX = petWindow.frame.origin.x
+
+        // Stop any ongoing walk/bubble
+        walkAnimationTimer?.invalidate()
+        isWalking = false
+        idleWalkTimer?.invalidate()
+        thoughtBubble.hide()
+        petWindow.orderOut(nil)
+        petWindow = PetWindow()
+
+        petView = PetView(frame: NSRect(
+            x: 0, y: 0,
+            width: SpriteRenderer.spriteWidth,
+            height: SpriteRenderer.spriteHeight
+        ))
+        petView.onClick = { [weak self] in
+            self?.focusTerminal()
+        }
+        petView.onDragEnd = { [weak self] in
+            self?.savePosition()
+        }
+        petWindow.contentView = petView
+
+        // Restore X position, recalculate Y for new size
+        var origin = PetWindow.calculatePosition(for: petWindow.frame.size)
+        origin.x = wasOriginX
+        petWindow.setFrameOrigin(origin)
+
+        petWindow.makeKeyAndOrderFront(nil)
+        petWindow.orderFrontRegardless()
+
+        scheduleIdleWalk()
+    }
+
     @objc private func toggleIdleWalk() {
         config.idleWalk.toggle()
         config.save()
@@ -229,7 +302,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func triggerWave() { petView.setState(.wave) }
-    @objc private func triggerWalk() { petView.setState(.walking) }
+    @objc private func triggerWalk() { startIdleWalk(force: true) }
     @objc private func triggerThink() { petView.setState(.thinking) }
     @objc private func triggerAlert() { petView.setState(.alert) }
 

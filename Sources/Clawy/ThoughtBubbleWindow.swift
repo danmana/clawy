@@ -51,23 +51,34 @@ class ThoughtBubbleWindow: NSWindow {
         let bubbleInnerY = Self.tailHeight + (Self.bubbleHeight - labelH) / 2
         label.frame = NSRect(x: 12, y: bubbleInnerY, width: Self.bubbleWidth - 24, height: labelH)
 
-        let petFrame = petWindow.frame
-        let x = petFrame.midX - Self.bubbleWidth / 2
-        let y = petFrame.maxY - 8
+        // Position relative to pet window
+        let offsetX = petWindow.frame.width / 2 - Self.bubbleWidth / 2
+        let offsetY = petWindow.frame.height - 8
+        let childOrigin = NSPoint(x: offsetX, y: offsetY)
+        setFrame(NSRect(origin: .zero, size: frame.size), display: false)
 
-        setFrameOrigin(NSPoint(x: x, y: y))
+        // Attach as child window so it moves with the pet
+        if parent != petWindow {
+            parent?.removeChildWindow(self)
+            petWindow.addChildWindow(self, ordered: .above)
+        }
+        setFrameOrigin(NSPoint(
+            x: petWindow.frame.origin.x + childOrigin.x,
+            y: petWindow.frame.origin.y + childOrigin.y
+        ))
         orderFrontRegardless()
 
         hideTimer?.invalidate()
         if duration > 0 {
             hideTimer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { [weak self] _ in
-                self?.orderOut(nil)
+                self?.hide()
             }
         }
     }
 
     func hide() {
         hideTimer?.invalidate()
+        parent?.removeChildWindow(self)
         orderOut(nil)
     }
 }

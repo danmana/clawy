@@ -10,15 +10,15 @@ import AppKit
 /// - Four legs underneath with gaps between them
 struct SpriteRenderer {
 
-    static let pixelSize: Int = 6       // Each logical pixel = 6x6 screen pixels
+    static var pixelSize: Int = 6        // Set from config before use
     static let gridWidth: Int = 18      // Wider grid to fit arms
     static let gridHeight: Int = 16     // Character grid height
 
-    static var spriteWidth: Int { gridWidth * pixelSize }   // 108
-    static var spriteHeight: Int { gridHeight * pixelSize } // 96
+    static var spriteWidth: Int { gridWidth * pixelSize }
+    static var spriteHeight: Int { gridHeight * pixelSize }
 
     /// Empty rows below the feet (grid rows 11-15 = 5 rows)
-    static let feetBottomPadding: Int = (gridHeight - 11) * pixelSize
+    static var feetBottomPadding: Int { (gridHeight - 11) * pixelSize }
 
     // MARK: - Colors
 
