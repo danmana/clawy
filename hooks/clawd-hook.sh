@@ -5,8 +5,25 @@
 
 STATUS_DIR="$HOME/.clawd-pet"
 STATUS_FILE="$STATUS_DIR/status"
+TERMINAL_PID_FILE="$STATUS_DIR/terminal_pid"
 LOG_FILE="$STATUS_DIR/hook.log"
 mkdir -p "$STATUS_DIR"
+
+# Find terminal app PID by walking up the process tree
+find_terminal_pid() {
+    local PID=$$
+    while [ "$PID" -gt 1 ]; do
+        local PNAME=$(ps -p "$PID" -o comm= 2>/dev/null)
+        # Check if this is a known terminal app
+        case "$PNAME" in
+            */Ghostty.app/*|*/Terminal.app/*|*/iTerm2.app/*|*/Alacritty.app/*|*/kitty.app/*|*/WezTerm.app/*|*/Warp.app/*)
+                echo "$PID"
+                return
+                ;;
+        esac
+        PID=$(ps -p "$PID" -o ppid= 2>/dev/null | tr -d ' ')
+    done
+}
 
 # Parse everything in a single python3 call (including timestamp)
 eval "$(python3 -c "
@@ -26,7 +43,13 @@ print(f'TOOL_NAME={tool!r}')
 print(f'COMMAND={cmd!r}')
 ")"
 
-echo "[$TS] EVENT=$EVENT TOOL=$TOOL_NAME CMD=$COMMAND" >> "$LOG_FILE"
+# Save terminal PID on every event (cheap operation)
+TERM_PID=$(find_terminal_pid)
+if [ -n "$TERM_PID" ]; then
+    echo "$TERM_PID" > "$TERMINAL_PID_FILE"
+fi
+
+echo "[$TS] EVENT=$EVENT TOOL=$TOOL_NAME CMD=$COMMAND TERMPID=$TERM_PID" >> "$LOG_FILE"
 
 case "$EVENT" in
     "PreToolUse")

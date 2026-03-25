@@ -41,6 +41,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             width: SpriteRenderer.spriteWidth,
             height: SpriteRenderer.spriteHeight
         ))
+        petView.onClick = { [weak self] in
+            self?.focusTerminal()
+        }
         petWindow.contentView = petView
         petWindow.makeKeyAndOrderFront(nil)
         petWindow.orderFrontRegardless()
@@ -138,6 +141,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func resetPosition() {
         petWindow.resetPosition()
+    }
+
+    private func focusTerminal() {
+        let pidFile = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".clawd-pet/terminal_pid")
+        guard let content = try? String(contentsOf: pidFile, encoding: .utf8),
+              let pid = Int32(content.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            return
+        }
+        if let app = NSRunningApplication(processIdentifier: pid) {
+            app.activate()
+        }
     }
 
     @objc private func quit() {

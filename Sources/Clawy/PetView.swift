@@ -81,8 +81,11 @@ class PetView: NSView {
 
     // MARK: - Mouse Interaction
 
+    /// Called when the pet is clicked. Override behavior externally.
+    var onClick: (() -> Void)?
+
     override func mouseDown(with event: NSEvent) {
-        // Click triggers a wave
+        onClick?()
         if currentState == .idle {
             setState(.wave)
         }
