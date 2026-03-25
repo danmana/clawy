@@ -145,7 +145,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func focusTerminal() {
         let pidFile = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".clawd-pet/terminal_pid")
+            .appendingPathComponent(".clawy/terminal_pid")
         guard let content = try? String(contentsOf: pidFile, encoding: .utf8),
               let pid = Int32(content.trimmingCharacters(in: .whitespacesAndNewlines)) else {
             return

@@ -34,7 +34,7 @@ class PetWindow: NSWindow {
         setFrameOrigin(origin)
     }
 
-    /// Find the best screen and position Clawd on top of the Dock.
+    /// Find the best screen and position Clawy on top of the Dock.
     /// Strategy: prefer the screen with a bottom Dock, fall back to the screen with the mouse cursor.
     static func calculatePosition(for size: NSSize) -> NSPoint {
         // Try to find a screen with a bottom Dock (visibleFrame.minY > frame.minY)

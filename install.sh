@@ -3,7 +3,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-HOOK_SCRIPT="$SCRIPT_DIR/hooks/clawd-hook.sh"
+HOOK_SCRIPT="$SCRIPT_DIR/hooks/clawy-hook.sh"
 SETTINGS_FILE="$HOME/.claude/settings.json"
 
 echo "🐾 Installing Clawy hooks..."
@@ -12,8 +12,8 @@ echo "🐾 Installing Clawy hooks..."
 chmod +x "$HOOK_SCRIPT"
 
 # Create status directory
-mkdir -p "$HOME/.clawd-pet"
-echo "idle" > "$HOME/.clawd-pet/status"
+mkdir -p "$HOME/.clawy"
+echo "idle" > "$HOME/.clawy/status"
 
 # Update Claude Code settings
 if [ ! -f "$SETTINGS_FILE" ]; then
@@ -41,7 +41,7 @@ for event in ["Notification", "PreToolUse", "PostToolUse", "Stop", "UserPromptSu
     existing = settings["hooks"].get(event, [])
     # Check if we already have this hook installed
     already_installed = any(
-        any(h.get("command", "").endswith("clawd-hook.sh") for h in entry.get("hooks", []))
+        any(h.get("command", "").endswith("clawy-hook.sh") for h in entry.get("hooks", []))
         for entry in existing
     )
     if not already_installed:

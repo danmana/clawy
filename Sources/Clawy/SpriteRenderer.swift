@@ -1,9 +1,9 @@
 import AppKit
 
-/// Programmatically renders Clawd pixel art frames.
+/// Programmatically renders Clawy pixel art frames.
 /// The character is drawn on a pixel grid and scaled up for crisp rendering.
 ///
-/// Clawd design (from reference):
+/// Clawy design (from reference):
 /// - Wide salmon/orange rectangular body
 /// - Two dark square eyes in the upper portion
 /// - Two stubby arms extending from the sides
@@ -62,7 +62,7 @@ struct SpriteRenderer {
 
     // MARK: - Base Body
     //
-    // Clawd layout on 18x16 grid:
+    // Clawy layout on 18x16 grid:
     //
     //   Row 2-8:   Main body (cols 4-13, 10 wide x 7 tall)
     //   Row 5-6:   Arms (cols 2-3 left, cols 14-15 right)

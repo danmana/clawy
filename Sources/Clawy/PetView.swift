@@ -1,6 +1,6 @@
 import AppKit
 
-/// The main view that displays and animates Clawd.
+/// The main view that displays and animates Clawy.
 class PetView: NSView {
 
     private let imageView = NSImageView()

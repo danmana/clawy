@@ -7,12 +7,12 @@ struct HookStatus {
     let command: String?    // e.g. "rm", "git", "curl" (first word of Bash command)
 }
 
-/// Watches ~/.clawd-pet/status for changes written by Claude Code hooks.
+/// Watches ~/.clawy/status for changes written by Claude Code hooks.
 /// Format: "state" or "state|tool_name|command"
 class HookWatcher {
 
     static let statusDir = FileManager.default.homeDirectoryForCurrentUser
-        .appendingPathComponent(".clawd-pet")
+        .appendingPathComponent(".clawy")
     static let statusFile = statusDir.appendingPathComponent("status")
 
     private var fileDescriptor: Int32 = -1

@@ -3,7 +3,7 @@
 # Shows bubble on PreToolUse for Bash commands (hides fast if auto-allowed,
 # stays visible if permission needed since PostToolUse waits for user response)
 
-STATUS_DIR="$HOME/.clawd-pet"
+STATUS_DIR="$HOME/.clawy"
 STATUS_FILE="$STATUS_DIR/status"
 TERMINAL_PID_FILE="$STATUS_DIR/terminal_pid"
 LOG_FILE="$STATUS_DIR/hook.log"
