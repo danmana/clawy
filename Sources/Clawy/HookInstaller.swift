@@ -10,11 +10,16 @@ struct HookInstaller {
 
     /// Path to the hook script, found by walking up from the executable
     static var hookScriptPath: String {
+        // Check inside .app bundle first (Resources/hooks/clawy-hook.sh)
+        if let bundlePath = Bundle.main.path(forResource: "clawy-hook", ofType: "sh", inDirectory: "hooks") {
+            return bundlePath
+        }
+
+        // Walk up from executable to find hooks/clawy-hook.sh (dev mode)
         var dir = URL(fileURLWithPath: CommandLine.arguments[0])
             .resolvingSymlinksInPath()
             .deletingLastPathComponent()
 
-        // Walk up until we find hooks/clawy-hook.sh
         for _ in 0..<10 {
             let candidate = dir.appendingPathComponent("hooks/clawy-hook.sh").path
             if FileManager.default.fileExists(atPath: candidate) {
@@ -23,7 +28,6 @@ struct HookInstaller {
             dir = dir.deletingLastPathComponent()
         }
 
-        // Should not happen, but return a sensible default
         NSLog("Clawy: WARNING - could not find hooks/clawy-hook.sh")
         return "hooks/clawy-hook.sh"
     }
