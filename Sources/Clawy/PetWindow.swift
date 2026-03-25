@@ -9,7 +9,13 @@ class PetWindow: NSWindow {
             height: CGFloat(SpriteRenderer.spriteHeight)
         )
 
-        let origin = Self.calculatePosition(for: size)
+        var origin = Self.calculatePosition(for: size)
+
+        // Restore saved X position if available
+        let config = Config.load()
+        if let lastX = config.lastX {
+            origin.x = lastX
+        }
 
         super.init(
             contentRect: NSRect(origin: origin, size: size),

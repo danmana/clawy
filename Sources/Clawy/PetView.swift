@@ -7,7 +7,7 @@ class PetView: NSView {
     private var animationTimer: Timer?
     private var currentFrames: [NSImage] = []
     private var currentFrameIndex: Int = 0
-    private var currentState: AnimationState? = nil
+    private(set) var currentAnimationState: AnimationState? = nil
 
     // Preloaded frame caches
     private var frameCache: [AnimationState: [NSImage]] = [:]
@@ -40,9 +40,9 @@ class PetView: NSView {
     }
 
     func setState(_ state: AnimationState) {
-        guard state != currentState || !state.loops || currentState == nil else { return }
+        guard state != currentAnimationState || !state.loops || currentAnimationState == nil else { return }
 
-        currentState = state
+        currentAnimationState = state
         currentFrameIndex = 0
         currentFrames = frameCache[state] ?? []
 
@@ -67,7 +67,7 @@ class PetView: NSView {
         currentFrameIndex += 1
 
         if currentFrameIndex >= currentFrames.count {
-            if currentState?.loops == true {
+            if currentAnimationState?.loops == true {
                 currentFrameIndex = 0
             } else {
                 // Non-looping animation finished, return to idle
@@ -83,6 +83,7 @@ class PetView: NSView {
 
     /// Called when the pet is clicked. Override behavior externally.
     var onClick: (() -> Void)?
+    var onDragEnd: (() -> Void)?
 
     private var isDragging = false
     private var dragStartLocation: NSPoint = .zero
@@ -105,11 +106,12 @@ class PetView: NSView {
 
     override func mouseUp(with event: NSEvent) {
         if !isDragging {
-            // It was a click, not a drag
             onClick?()
-            if currentState == .idle {
+            if currentAnimationState == .idle {
                 setState(.wave)
             }
+        } else {
+            onDragEnd?()
         }
         isDragging = false
     }

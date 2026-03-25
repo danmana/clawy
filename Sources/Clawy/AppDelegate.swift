@@ -9,6 +9,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var thoughtBubble: ThoughtBubbleWindow!
     private var bubbleDelayTimer: Timer?
     private var bubbleFallbackTimer: Timer?
+    private var idleWalkTimer: Timer?
+    private var walkAnimationTimer: Timer?
+    private var config = Config.load()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Setup menu bar icon first (before policy switch)
@@ -29,6 +32,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
         menu.addItem(withTitle: "Test Random Bubble", action: #selector(testRandomBubble), keyEquivalent: "t")
         menu.addItem(.separator())
+        idleWalkMenuItem = NSMenuItem(title: "Idle Walk", action: #selector(toggleIdleWalk), keyEquivalent: "")
+        idleWalkMenuItem.target = self
+        idleWalkMenuItem.state = config.idleWalk ? .on : .off
+        menu.addItem(idleWalkMenuItem)
         menu.addItem(withTitle: "Reset Position", action: #selector(resetPosition), keyEquivalent: "r")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Clawy", action: #selector(quit), keyEquivalent: "q")
@@ -43,6 +50,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ))
         petView.onClick = { [weak self] in
             self?.focusTerminal()
+        }
+        petView.onDragEnd = { [weak self] in
+            self?.savePosition()
         }
         petWindow.contentView = petView
         petWindow.makeKeyAndOrderFront(nil)
@@ -70,21 +80,128 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil
         )
 
+        // Start idle walk timer
+        scheduleIdleWalk()
+
         NSLog("Clawy: Clawy is alive!")
     }
 
+    // MARK: - Idle Walk
+
+    private var idleWalkMenuItem: NSMenuItem!
+    private var isWalking = false
+
+    private func scheduleIdleWalk() {
+        idleWalkTimer?.invalidate()
+        guard config.idleWalk else { return }
+
+        // Walk every 15-45 seconds when idle
+        let delay = TimeInterval.random(in: 15...45)
+        idleWalkTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
+            self?.startIdleWalk()
+        }
+    }
+
+    private func startIdleWalk() {
+        guard config.idleWalk, !isWalking else {
+            scheduleIdleWalk()
+            return
+        }
+
+        // Only walk when idle
+        guard petView.currentAnimationState == .idle else {
+            scheduleIdleWalk()
+            return
+        }
+
+        // Pick a random X position on the same screen
+        let screen = NSScreen.screens.first { $0.frame.contains(petWindow.frame.origin) }
+            ?? NSScreen.screens[0]
+        let margin: CGFloat = 50
+        let minX = screen.frame.minX + margin
+        let maxX = screen.frame.maxX - margin - petWindow.frame.width
+        let targetX = CGFloat.random(in: minX...maxX)
+
+        walkTo(targetX: targetX)
+    }
+
+    private func walkTo(targetX: CGFloat) {
+        isWalking = true
+        petView.setState(.walking)
+
+        let currentX = petWindow.frame.origin.x
+        let distance = targetX - currentX
+        let steps = Int(abs(distance) / 2)  // 2 points per step
+        guard steps > 0 else {
+            finishWalk()
+            return
+        }
+
+        let stepX = distance / CGFloat(steps)
+        var step = 0
+
+        walkAnimationTimer?.invalidate()
+        walkAnimationTimer = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true) { [weak self] timer in
+            guard let self else { timer.invalidate(); return }
+            step += 1
+            let newOrigin = NSPoint(
+                x: self.petWindow.frame.origin.x + stepX,
+                y: self.petWindow.frame.origin.y
+            )
+            self.petWindow.setFrameOrigin(newOrigin)
+
+            if step >= steps {
+                timer.invalidate()
+                self.finishWalk()
+            }
+        }
+    }
+
+    private func finishWalk() {
+        isWalking = false
+        petView.setState(.idle)
+        savePosition()
+        scheduleIdleWalk()
+    }
+
+    private func savePosition() {
+        config.lastX = Double(petWindow.frame.origin.x)
+        config.save()
+    }
+
+    @objc private func toggleIdleWalk() {
+        config.idleWalk.toggle()
+        config.save()
+        idleWalkMenuItem.state = config.idleWalk ? .on : .off
+        if config.idleWalk {
+            scheduleIdleWalk()
+        } else {
+            idleWalkTimer?.invalidate()
+            walkAnimationTimer?.invalidate()
+            if isWalking {
+                finishWalk()
+            }
+        }
+    }
+
+    // MARK: - Hook Handling
+
     private func handleHookStatus(_ status: HookStatus) {
+        // Stop idle walk if something else is happening
+        if status.state != .idle && isWalking {
+            walkAnimationTimer?.invalidate()
+            isWalking = false
+        }
+
         petView.setState(status.state)
 
         if status.state == .alert, status.toolName != nil {
-            // Delay showing the bubble by 300ms — if idle arrives before then, skip it
             let msg = ThoughtBubble.message(toolName: status.toolName, command: status.command)
                 ?? "Can I? Can I?"
             bubbleDelayTimer?.invalidate()
             bubbleDelayTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
                 guard let self else { return }
                 self.thoughtBubble.show(message: msg, above: self.petWindow)
-                // Fallback: reset everything after 15s (for when user cancels permission)
                 self.bubbleFallbackTimer?.invalidate()
                 self.bubbleFallbackTimer = Timer.scheduledTimer(withTimeInterval: 15.0, repeats: false) { [weak self] _ in
                     self?.thoughtBubble.hide()
@@ -92,12 +209,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         } else {
-            // Any other state (idle, wave, thinking) = hide the bubble
             bubbleDelayTimer?.invalidate()
             bubbleDelayTimer = nil
             bubbleFallbackTimer?.invalidate()
             bubbleFallbackTimer = nil
             thoughtBubble.hide()
+        }
+
+        // Reschedule idle walk when returning to idle
+        if status.state == .idle {
+            scheduleIdleWalk()
         }
     }
 
