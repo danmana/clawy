@@ -85,6 +85,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.setActivationPolicy(.accessory)
         }
 
+        // Install hooks into Claude Code settings
+        HookInstaller.install()
+
+        // Handle SIGTERM/SIGINT to clean up hooks
+        signal(SIGTERM) { _ in
+            HookInstaller.uninstall()
+            _Exit(0)
+        }
+        signal(SIGINT) { _ in
+            HookInstaller.uninstall()
+            _Exit(0)
+        }
+
         // Start watching for Claude Code hook events
         hookWatcher = HookWatcher { [weak self] status in
             self?.handleHookStatus(status)
@@ -299,6 +312,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         hookWatcher?.stop()
+        HookInstaller.uninstall()
     }
 
     @objc private func triggerWave() { petView.setState(.wave) }
@@ -352,6 +366,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func quit() {
+        HookInstaller.uninstall()
         NSApplication.shared.terminate(nil)
     }
 }
