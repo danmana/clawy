@@ -1,22 +1,19 @@
 #!/bin/bash
 # Clawy hook script for Claude Code
-# Shows bubble on PreToolUse for Bash commands (hides fast if auto-allowed,
-# stays visible if permission needed since PostToolUse waits for user response)
+# Writes per-session state to ~/.clawy/sessions/<session_id>.json
 
 STATUS_DIR="$HOME/.clawy"
-STATUS_FILE="$STATUS_DIR/status"
-TERMINAL_PID_FILE="$STATUS_DIR/terminal_pid"
+SESSIONS_DIR="$STATUS_DIR/sessions"
 LOG_FILE="$STATUS_DIR/hook.log"
-mkdir -p "$STATUS_DIR"
+mkdir -p "$SESSIONS_DIR"
 
 # Find terminal app PID by walking up the process tree
 find_terminal_pid() {
     local PID=$$
     while [ "$PID" -gt 1 ]; do
         local PNAME=$(ps -p "$PID" -o comm= 2>/dev/null)
-        # Check if this is a known terminal app
         case "$PNAME" in
-            */Ghostty.app/*|*/Terminal.app/*|*/iTerm2.app/*|*/Alacritty.app/*|*/kitty.app/*|*/WezTerm.app/*|*/Warp.app/*)
+            */Ghostty.app/*|*/Terminal.app/*|*/iTerm2.app/*|*/Alacritty.app/*|*/kitty.app/*|*/WezTerm.app/*|*/Warp.app/*|*/Cursor.app/*|*/"Visual Studio Code.app"/*|*/VSCodium.app/*|*/Windsurf.app/*)
                 echo "$PID"
                 return
                 ;;
@@ -25,11 +22,12 @@ find_terminal_pid() {
     done
 }
 
-# Parse everything in a single python3 call (including timestamp)
+# Parse everything in a single python3 call
 eval "$(python3 -c "
 import sys, json, datetime
 ts = datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]
 d = json.load(sys.stdin)
+sid = d.get('session_id', 'unknown')
 event = d.get('hook_event_name', '')
 tool = d.get('tool_name', '')
 cmd = ''
@@ -38,43 +36,58 @@ if tool == 'Bash':
     c = inp.get('command', '')
     cmd = c.split()[0] if c else ''
 print(f'TS={ts!r}')
+print(f'SESSION_ID={sid!r}')
 print(f'EVENT={event!r}')
 print(f'TOOL_NAME={tool!r}')
 print(f'COMMAND={cmd!r}')
 ")"
 
-# Save terminal PID on every event (cheap operation)
 TERM_PID=$(find_terminal_pid)
-if [ -n "$TERM_PID" ]; then
-    echo "$TERM_PID" > "$TERMINAL_PID_FILE"
-fi
+SESSION_FILE="$SESSIONS_DIR/${SESSION_ID}.json"
 
-echo "[$TS] EVENT=$EVENT TOOL=$TOOL_NAME CMD=$COMMAND TERMPID=$TERM_PID" >> "$LOG_FILE"
+echo "[$TS] SID=${SESSION_ID:0:8} EVENT=$EVENT TOOL=$TOOL_NAME CMD=$COMMAND TERMPID=$TERM_PID" >> "$LOG_FILE"
 
+# Determine state for this session
+STATE="idle"
 case "$EVENT" in
     "PreToolUse")
         if [ "$TOOL_NAME" = "Bash" ]; then
-            echo "alert|${TOOL_NAME}|${COMMAND}" > "$STATUS_FILE"
+            STATE="alert"
         else
-            echo "thinking" > "$STATUS_FILE"
+            STATE="thinking"
         fi
         ;;
     "PostToolUse")
-        echo "idle" > "$STATUS_FILE"
+        STATE="idle"
         ;;
     "Stop")
-        echo "wave" > "$STATUS_FILE"
+        STATE="wave"
+        # Clean up session file after a delay (session ended)
+        (sleep 5 && rm -f "$SESSION_FILE") &
         ;;
     "UserPromptSubmit")
-        echo "thinking" > "$STATUS_FILE"
+        STATE="thinking"
         ;;
     "Notification")
-        # No-op, we handle it via PreToolUse now
-        ;;
-    *)
-        echo "idle" > "$STATUS_FILE"
+        STATE=""  # No-op
         ;;
 esac
+
+# Write session state as JSON (atomic via temp file)
+if [ -n "$STATE" ]; then
+    python3 -c "
+import json, time
+d = {
+    'state': '$STATE',
+    'tool': '$TOOL_NAME',
+    'command': '$COMMAND',
+    'terminal_pid': ${TERM_PID:-0},
+    'timestamp': time.time()
+}
+with open('$SESSION_FILE', 'w') as f:
+    json.dump(d, f)
+"
+fi
 
 echo '{"continue": true}'
 exit 0

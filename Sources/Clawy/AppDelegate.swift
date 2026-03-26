@@ -4,7 +4,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var petWindow: PetWindow!
     private var petView: PetView!
-    private var hookWatcher: HookWatcher!
+    private var sessionAggregator: SessionAggregator!
     private var statusItem: NSStatusItem!
     private var thoughtBubble: ThoughtBubbleWindow!
     private var bubbleDelayTimer: Timer?
@@ -13,12 +13,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var walkAnimationTimer: Timer?
     private var config = Config.load()
     private var sizeMenuItems: [PetSize: NSMenuItem] = [:]
+    private var currentTerminalPid: Int32 = 0
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Apply size from config
         SpriteRenderer.pixelSize = config.size.pixelSize
 
-        // Setup menu bar icon first (before policy switch)
+        // Setup menu bar icon
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = statusItem.button {
             if let img = NSImage(systemSymbolName: "pawprint.fill", accessibilityDescription: "Clawy") {
@@ -82,7 +83,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Create thought bubble (hidden initially)
         thoughtBubble = ThoughtBubbleWindow()
 
-        // Switch to accessory to hide from Dock (status item + window stay visible)
+        // Switch to accessory to hide from Dock
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             NSApp.setActivationPolicy(.accessory)
         }
@@ -100,13 +101,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             _Exit(0)
         }
 
-        // Start watching for Claude Code hook events
-        hookWatcher = HookWatcher { [weak self] status in
-            self?.handleHookStatus(status)
+        // Start watching sessions directory
+        sessionAggregator = SessionAggregator { [weak self] state in
+            self?.handleAggregatedState(state)
         }
-        hookWatcher.start()
+        sessionAggregator.start()
 
-        // Reposition when screen configuration changes (Dock resize, display connect/disconnect)
+        // Reposition when screen configuration changes
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(screenDidChange),
@@ -120,6 +121,53 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSLog("Clawy: Clawy is alive!")
     }
 
+    // MARK: - Aggregated State Handling
+
+    private func handleAggregatedState(_ state: AggregatedState) {
+        // Track terminal PID for click-to-focus
+        if state.terminalPid > 0 {
+            currentTerminalPid = state.terminalPid
+        }
+
+        // Stop idle walk if something is happening
+        if state.animationState != .idle && isWalking {
+            walkAnimationTimer?.invalidate()
+            isWalking = false
+        }
+
+        petView.setState(state.animationState)
+
+        if state.animationState == .alert {
+            let msg = ThoughtBubble.message(toolName: state.toolName, command: state.command)
+                ?? "Can I? Can I?"
+
+            // Show alert count if multiple sessions need permission
+            let displayMsg = state.alertCount > 1 ? "\(msg) (\(state.alertCount))" : msg
+
+            bubbleDelayTimer?.invalidate()
+            bubbleDelayTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
+                guard let self else { return }
+                self.thoughtBubble.show(message: displayMsg, above: self.petWindow)
+                self.bubbleFallbackTimer?.invalidate()
+                self.bubbleFallbackTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: false) { [weak self] _ in
+                    self?.thoughtBubble.hide()
+                    self?.petView.setState(.idle)
+                }
+            }
+        } else {
+            bubbleDelayTimer?.invalidate()
+            bubbleDelayTimer = nil
+            bubbleFallbackTimer?.invalidate()
+            bubbleFallbackTimer = nil
+            thoughtBubble.hide()
+        }
+
+        // Reschedule idle walk when returning to idle
+        if state.animationState == .idle {
+            scheduleIdleWalk()
+        }
+    }
+
     // MARK: - Idle Walk
 
     private var idleWalkMenuItem: NSMenuItem!
@@ -129,7 +177,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         idleWalkTimer?.invalidate()
         guard config.idleWalk else { return }
 
-        // Walk every 15-45 seconds when idle
         let delay = TimeInterval.random(in: 15...45)
         idleWalkTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
             self?.startIdleWalk()
@@ -143,13 +190,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        // Only walk when idle (unless forced from menu)
         guard force || petView.currentAnimationState == .idle else {
             scheduleIdleWalk()
             return
         }
 
-        // Pick a random X within the center 60% of the screen (approximate Dock width)
         let screen = NSScreen.screens.first { $0.frame.contains(petWindow.frame.origin) }
             ?? NSScreen.screens[0]
         let screenWidth = screen.frame.width
@@ -168,7 +213,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         let currentX = petWindow.frame.origin.x
         let distance = targetX - currentX
-        let steps = Int(abs(distance) / 2)  // 2 points per step
+        let steps = Int(abs(distance) / 2)
         guard steps > 0 else {
             finishWalk()
             return
@@ -206,6 +251,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         config.save()
     }
 
+    // MARK: - Size
+
     @objc private func changeSize(_ sender: NSMenuItem) {
         guard let rawValue = sender.representedObject as? String,
               let newSize = PetSize(rawValue: rawValue),
@@ -214,12 +261,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         config.size = newSize
         config.save()
 
-        // Update checkmarks
         for (size, item) in sizeMenuItems {
             item.state = (size == newSize) ? .on : .off
         }
 
-        // Rebuild pet with new size
         SpriteRenderer.pixelSize = newSize.pixelSize
         rebuildPet()
     }
@@ -227,7 +272,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func rebuildPet() {
         let wasOriginX = petWindow.frame.origin.x
 
-        // Stop any ongoing walk/bubble
         walkAnimationTimer?.invalidate()
         isWalking = false
         idleWalkTimer?.invalidate()
@@ -248,7 +292,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         petWindow.contentView = petView
 
-        // Restore X position, recalculate Y for new size
         var origin = PetWindow.calculatePosition(for: petWindow.frame.size)
         origin.x = wasOriginX
         petWindow.setFrameOrigin(origin)
@@ -274,46 +317,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    // MARK: - Hook Handling
-
-    private func handleHookStatus(_ status: HookStatus) {
-        // Stop idle walk if something else is happening
-        if status.state != .idle && isWalking {
-            walkAnimationTimer?.invalidate()
-            isWalking = false
-        }
-
-        petView.setState(status.state)
-
-        if status.state == .alert, status.toolName != nil {
-            let msg = ThoughtBubble.message(toolName: status.toolName, command: status.command)
-                ?? "Can I? Can I?"
-            bubbleDelayTimer?.invalidate()
-            bubbleDelayTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
-                guard let self else { return }
-                self.thoughtBubble.show(message: msg, above: self.petWindow)
-                self.bubbleFallbackTimer?.invalidate()
-                self.bubbleFallbackTimer = Timer.scheduledTimer(withTimeInterval: 15.0, repeats: false) { [weak self] _ in
-                    self?.thoughtBubble.hide()
-                    self?.petView.setState(.idle)
-                }
-            }
-        } else {
-            bubbleDelayTimer?.invalidate()
-            bubbleDelayTimer = nil
-            bubbleFallbackTimer?.invalidate()
-            bubbleFallbackTimer = nil
-            thoughtBubble.hide()
-        }
-
-        // Reschedule idle walk when returning to idle
-        if status.state == .idle {
-            scheduleIdleWalk()
-        }
-    }
+    // MARK: - Actions
 
     func applicationWillTerminate(_ notification: Notification) {
-        hookWatcher?.stop()
+        sessionAggregator?.stop()
         HookInstaller.uninstall()
     }
 
@@ -324,22 +331,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func testRandomBubble() {
         let testCases: [(String?, String?)] = [
-            ("Bash", "rm"),
-            ("Bash", "git"),
-            ("Bash", "npm"),
-            ("Bash", "curl"),
-            ("Bash", "docker"),
-            ("Bash", "mkdir"),
-            ("Bash", "chmod"),
-            ("Bash", "mv"),
-            ("Bash", "kill"),
-            ("Bash", "pip"),
-            ("Bash", "brew"),
-            ("Bash", "sed"),
-            ("Bash", "touch"),
-            ("Bash", "python"),
-            ("Bash", "node"),
-            ("Bash", "swift"),
+            ("Bash", "rm"), ("Bash", "git"), ("Bash", "npm"),
+            ("Bash", "curl"), ("Bash", "docker"), ("Bash", "mkdir"),
+            ("Bash", "chmod"), ("Bash", "mv"), ("Bash", "kill"),
+            ("Bash", "pip"), ("Bash", "brew"), ("Bash", "sed"),
+            ("Bash", "touch"), ("Bash", "python"), ("Bash", "node"),
+            ("Bash", "swift"), ("Bash", "ssh"), ("Bash", "kubectl"),
+            ("Bash", "psql"), ("Bash", "mongo"),
         ]
         let pick = testCases.randomElement()!
         guard let msg = ThoughtBubble.message(toolName: pick.0, command: pick.1) else { return }
@@ -356,14 +354,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func focusTerminal() {
-        let pidFile = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".clawy/terminal_pid")
-        guard let content = try? String(contentsOf: pidFile, encoding: .utf8),
-              let pid = Int32(content.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+        guard currentTerminalPid > 0 else {
+            NSLog("Clawy: No terminal PID to focus")
             return
         }
-        if let app = NSRunningApplication(processIdentifier: pid) {
-            app.activate()
+        if let app = NSRunningApplication(processIdentifier: currentTerminalPid) {
+            NSLog("Clawy: Focusing \(app.localizedName ?? "unknown") (PID \(currentTerminalPid))")
+            app.activate(options: [.activateAllWindows])
+        } else {
+            NSLog("Clawy: Could not find app for PID \(currentTerminalPid)")
         }
     }
 

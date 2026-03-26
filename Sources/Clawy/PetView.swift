@@ -81,6 +81,13 @@ class PetView: NSView {
 
     // MARK: - Mouse Interaction
 
+    // Make the entire view bounds clickable, not just opaque pixels
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        return bounds.contains(point) ? self : nil
+    }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
     /// Called when the pet is clicked. Override behavior externally.
     var onClick: (() -> Void)?
     var onDragEnd: (() -> Void)?
