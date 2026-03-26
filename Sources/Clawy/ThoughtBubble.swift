@@ -70,6 +70,20 @@ struct ThoughtBubble {
         case "go":       return "Gopher gopher?"
         case "make":     return "Makey makey?"
         case "cmake":    return "Makey makey?"
+        case "ssh":      return "Shushy shushy?"
+        case "kubectl":  return "Kubey kubey?"
+        case "top":      return "Tippy toppy?"
+        case "htop":     return "Tippy toppy?"
+        case "nginx":    return "Proxy proxy?"
+        case "tmux":     return "Tuxy muxy?"
+        case "gh":       return "Gitty hubby?"
+        case "terraform": return "Formy formy?"
+        case "redis-cli": return "Reddy weddy?"
+        case "mongo":    return "Mongo bongo?"
+        case "mongosh":  return "Mongo bongo?"
+        case "psql":     return "Posty squealy?"
+        case "mysql":    return "My squealy?"
+        case "sqlite3":  return "Squealy litey?"
         default:         return nil
         }
     }
