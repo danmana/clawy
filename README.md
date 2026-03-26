@@ -26,6 +26,11 @@ Clawy sits on top of your Dock, shows cute thought bubbles when Claude asks for 
 
 Grab `Clawy.zip` from [Releases](../../releases), unzip, and drag `Clawy.app` to `/Applications`.
 
+> **"App is damaged and can't be opened"?** Run this in Terminal after unzipping:
+> ```bash
+> xattr -cr /Applications/Clawy.app
+> ```
+
 ### Build from source
 
 Requires Xcode Command Line Tools and macOS 13+.

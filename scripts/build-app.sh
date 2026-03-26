@@ -62,6 +62,9 @@ cat > "$APP_BUNDLE/Contents/Info.plist" << 'PLIST'
 </plist>
 PLIST
 
+# Ad-hoc code sign (prevents "damaged app" error on other Macs)
+codesign --force --deep --sign - "$APP_BUNDLE"
+
 # Create zip for distribution
 cd "$BUILD_DIR"
 zip -r "$APP_NAME.zip" "$APP_NAME.app" > /dev/null
