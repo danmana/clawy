@@ -35,9 +35,17 @@ class PetWindow: NSWindow {
         NSLog("Clawy: window origin=\(origin), size=\(size)")
     }
 
+    /// Full reset (used by menu item) — recalculates both X and Y.
     func resetPosition() {
         let origin = Self.calculatePosition(for: frame.size)
         setFrameOrigin(origin)
+    }
+
+    /// Update only the Y position (preserves horizontal placement).
+    /// Called when Dock shows/hides or screen config changes.
+    func updateVerticalPosition() {
+        let newOrigin = Self.calculatePosition(for: frame.size)
+        setFrameOrigin(NSPoint(x: frame.origin.x, y: newOrigin.y))
     }
 
     /// Find the best screen and position Clawy on top of the Dock.

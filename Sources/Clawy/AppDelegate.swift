@@ -115,6 +115,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil
         )
 
+
         // Start idle walk timer
         scheduleIdleWalk()
 
@@ -346,8 +347,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func screenDidChange(_ notification: Notification) {
-        petWindow.resetPosition()
+        petWindow.updateVerticalPosition()
     }
+
 
     @objc private func resetPosition() {
         petWindow.resetPosition()
