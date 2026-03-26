@@ -79,7 +79,7 @@ Hooks are automatically added to `~/.claude/settings.json` on launch and removed
 
 | Command | Message |
 |---------|---------|
-| `rm` | "Delete-y delete-y?" |
+| `rm` / `rmdir` | "Trashy trashy?" |
 | `git` | "Gitty gitty?" |
 | `npm` / `pnpm` | "Packy packy?" |
 | `yarn` | "Yarny yarny?" |
@@ -89,13 +89,22 @@ Hooks are automatically added to `~/.claude/settings.json` on launch and removed
 | `node` | "Nodey nodey?" |
 | `curl` / `wget` | "Fetchy fetchy?" |
 | `docker` | "Docky docky?" |
+| `sudo` | "Bossy bossy?" |
 | `mkdir` / `make` | "Makey makey?" |
 | `chmod` | "Changy changy?" |
 | `mv` | "Movey movey?" |
 | `cp` | "Copey copey?" |
+| `cat` | "Meowy meowy?" |
+| `ps` | "Pssst pssst?" |
+| `rg` | "Rippy greppy?" |
 | `kill` | "Killy killy?" |
 | `brew` | "Brewy brewy?" |
 | `swift` | "Swifty swifty?" |
+| `aws` | "Awwsy cloudy?" |
+| `gcloud` | "Googly cloudy?" |
+| `az` | "Zury Azury?" |
+| `bq` | "Query query?" |
+| `tar` / `zip` / `gzip` | "Squishy squashy?" |
 | Unknown | "Can I? Can I?" |
 
 ## Requirements

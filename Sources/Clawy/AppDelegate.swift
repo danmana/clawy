@@ -57,6 +57,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(withTitle: "Reset Position", action: #selector(resetPosition), keyEquivalent: "r")
         menu.addItem(.separator())
+        menu.addItem(withTitle: "GitHub", action: #selector(openGitHub), keyEquivalent: "")
+            .target = self
         menu.addItem(withTitle: "Quit Clawy", action: #selector(quit), keyEquivalent: "q")
         statusItem.menu = menu
 
@@ -363,6 +365,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let app = NSRunningApplication(processIdentifier: pid) {
             app.activate()
         }
+    }
+
+    @objc private func openGitHub() {
+        NSWorkspace.shared.open(URL(string: "https://github.com/danmana/clawy")!)
     }
 
     @objc private func quit() {
