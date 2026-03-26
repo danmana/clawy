@@ -18,8 +18,13 @@ struct ThoughtBubble {
         // Strip path prefixes (e.g. /usr/bin/rm -> rm, ./scripts/foo.sh -> foo.sh)
         let cmd = command.split(separator: "/").last.map(String.init) ?? command
 
-        // Scripts ending in .sh → "Bashy bashy?"
-        if cmd.hasSuffix(".sh") { return "Bashy bashy?" }
+        // Match by file extension for scripts
+        if cmd.hasSuffix(".sh") || cmd.hasSuffix(".bash") || cmd.hasSuffix(".zsh") { return "Bashy bashy?" }
+        if cmd.hasSuffix(".py") { return "Snakey snakey?" }
+        if cmd.hasSuffix(".js") || cmd.hasSuffix(".ts") || cmd.hasSuffix(".mjs") { return "Nodey nodey?" }
+        if cmd.hasSuffix(".rb") { return "Ruby ruby?" }
+        if cmd.hasSuffix(".pl") { return "Perly perly?" }
+        if cmd.hasSuffix(".swift") { return "Swifty swifty?" }
 
         switch cmd {
         case "rm":       return "Trashy trashy?"
