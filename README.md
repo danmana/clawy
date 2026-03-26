@@ -8,6 +8,10 @@ A pixel-art desktop pet for macOS that reacts to your [Claude Code](https://docs
 
 Clawy sits on top of your Dock, shows cute thought bubbles when Claude asks for permission, and walks around when idle.
 
+### Demo
+
+https://github.com/danmana/clawy/raw/main/assets/demo.mp4
+
 ## Features
 
 - **Pixel art sprite** with idle, wave, walk, think, and alert animations
@@ -74,6 +78,7 @@ Clawy uses [Claude Code hooks](https://docs.anthropic.com/en/docs/claude-code/ho
 | Event | Reaction |
 |-------|----------|
 | `PreToolUse` (Bash) | Thought bubble with cute message |
+| `PreToolUse` (WebFetch) | "Fetchy fetchy?" bubble |
 | `PostToolUse` | Back to idle |
 | `UserPromptSubmit` | Thinking animation |
 | `Stop` | Wave animation |
