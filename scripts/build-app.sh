@@ -32,6 +32,9 @@ cp "$BINARY" "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
 cp "$PROJECT_DIR/hooks/clawy-hook.sh" "$APP_BUNDLE/Contents/Resources/hooks/"
 chmod +x "$APP_BUNDLE/Contents/Resources/hooks/clawy-hook.sh"
 
+# Copy icon
+cp "$PROJECT_DIR/assets/icon.icns" "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
+
 # Create Info.plist
 cat > "$APP_BUNDLE/Contents/Info.plist" << 'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -56,6 +59,8 @@ cat > "$APP_BUNDLE/Contents/Info.plist" << 'PLIST'
     <string>13.0</string>
     <key>LSUIElement</key>
     <true/>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>NSHighResolutionCapable</key>
     <true/>
 </dict>
