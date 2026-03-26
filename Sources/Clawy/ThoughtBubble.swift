@@ -15,8 +15,11 @@ struct ThoughtBubble {
     }
 
     private static func bashMessage(for command: String) -> String? {
-        // Strip path prefixes (e.g. /usr/bin/rm -> rm)
+        // Strip path prefixes (e.g. /usr/bin/rm -> rm, ./scripts/foo.sh -> foo.sh)
         let cmd = command.split(separator: "/").last.map(String.init) ?? command
+
+        // Scripts ending in .sh → "Bashy bashy?"
+        if cmd.hasSuffix(".sh") { return "Bashy bashy?" }
 
         switch cmd {
         case "rm":       return "Trashy trashy?"
