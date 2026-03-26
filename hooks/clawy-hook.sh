@@ -13,7 +13,7 @@ find_terminal_pid() {
     while [ "$PID" -gt 1 ]; do
         local PNAME=$(ps -p "$PID" -o comm= 2>/dev/null)
         case "$PNAME" in
-            */Ghostty.app/*|*/Terminal.app/*|*/iTerm2.app/*|*/Alacritty.app/*|*/kitty.app/*|*/WezTerm.app/*|*/Warp.app/*|*/Cursor.app/*|*/"Visual Studio Code.app"/*|*/VSCodium.app/*|*/Windsurf.app/*|*/WebStorm.app/*|*/"IntelliJ IDEA.app"/*|*/PyCharm.app/*|*/GoLand.app/*|*/CLion.app/*|*/Rider.app/*|*/RubyMine.app/*|*/PhpStorm.app/*|*/Fleet.app/*)
+            */Ghostty.app/*|*/Terminal.app/*|*/iTerm2.app/*|*/Alacritty.app/*|*/kitty.app/*|*/WezTerm.app/*|*/Warp.app/*|*/Rio.app/*|*/Tabby.app/*|*/Hyper.app/*|*/Cursor.app/*|*/"Visual Studio Code.app"/*|*/VSCodium.app/*|*/Windsurf.app/*|*/Zed.app/*|*/Nova.app/*|*/"Sublime Text.app"/*|*/Emacs.app/*|*/WebStorm.app/*|*/"IntelliJ IDEA.app"/*|*/PyCharm.app/*|*/GoLand.app/*|*/CLion.app/*|*/Rider.app/*|*/RubyMine.app/*|*/PhpStorm.app/*|*/Fleet.app/*)
                 echo "$PID"
                 return
                 ;;
