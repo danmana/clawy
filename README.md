@@ -10,7 +10,8 @@ Clawy sits on top of your Dock, shows cute thought bubbles when Claude asks for 
 
 ### Demo
 
-https://github.com/danmana/clawy/raw/main/assets/demo.mp4
+https://github.com/user-attachments/assets/880bcb68-a415-467f-9703-b18f7270084b
+
 
 ## Features
 
