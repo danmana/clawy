@@ -59,6 +59,7 @@ struct ThoughtBubble {
         case "zsh":      return "Bashy bashy?"
         case "grep":     return "Greppy greppy?"
         case "rg":       return "Rippy greppy?"
+        case "find":     return "Findy findy?"
         case "cat":      return "Meowy meowy?"
         case "ps":       return "Pssst pssst?"
         case "sudo":     return "Bossy bossy?"
