@@ -11,7 +11,11 @@ struct ThoughtBubble {
             return bashMessage(for: cmd)
         }
 
-        return nil
+        // Non-Bash tools with their own messages
+        switch toolName {
+        case "WebFetch":  return "Fetchy fetchy?"
+        default:          return nil
+        }
     }
 
     private static func bashMessage(for command: String) -> String? {

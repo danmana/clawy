@@ -51,7 +51,7 @@ echo "[$TS] SID=${SESSION_ID:0:8} EVENT=$EVENT TOOL=$TOOL_NAME CMD=$COMMAND TERM
 STATE="idle"
 case "$EVENT" in
     "PreToolUse")
-        if [ "$TOOL_NAME" = "Bash" ]; then
+        if [ "$TOOL_NAME" = "Bash" ] || [ "$TOOL_NAME" = "WebFetch" ]; then
             STATE="alert"
         else
             STATE="thinking"
