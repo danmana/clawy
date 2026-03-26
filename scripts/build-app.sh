@@ -32,8 +32,9 @@ cp "$BINARY" "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
 cp "$PROJECT_DIR/hooks/clawy-hook.sh" "$APP_BUNDLE/Contents/Resources/hooks/"
 chmod +x "$APP_BUNDLE/Contents/Resources/hooks/clawy-hook.sh"
 
-# Copy icon
+# Copy icon and menu bar icon
 cp "$PROJECT_DIR/assets/icon.icns" "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
+cp "$PROJECT_DIR/assets/menubar-icon.png" "$APP_BUNDLE/Contents/Resources/menubar-icon.png"
 
 # Create Info.plist
 cat > "$APP_BUNDLE/Contents/Info.plist" << 'PLIST'

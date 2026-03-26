@@ -22,8 +22,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Setup menu bar icon
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = statusItem.button {
-            if let img = NSImage(systemSymbolName: "pawprint.fill", accessibilityDescription: "Clawy") {
+            // Try loading custom Clawy icon from bundle or dev path
+            let img = NSImage(contentsOfFile: Bundle.main.path(forResource: "menubar-icon", ofType: "png") ?? "")
+                ?? NSImage(contentsOfFile: "assets/menubar-icon.png")
+            if let img {
                 img.isTemplate = true
+                img.size = NSSize(width: 28, height: 19)
                 button.image = img
             } else {
                 button.title = "C"
