@@ -49,32 +49,23 @@ class PetWindow: NSWindow {
     }
 
     /// Find the best screen and position Clawy on top of the Dock.
-    /// Strategy: prefer the screen with a bottom Dock, fall back to the screen with the mouse cursor.
+    /// Uses precise dock geometry from macOS Dock preferences.
     static func calculatePosition(for size: NSSize) -> NSPoint {
-        // Try to find a screen with a bottom Dock (visibleFrame.minY > frame.minY)
-        let screenWithDock = NSScreen.screens.first { screen in
-            screen.visibleFrame.minY - screen.frame.minY > 10
-        }
+        let dock = DockGeometry.current()
 
-        // Fall back to screen containing the mouse cursor
+        // Fall back to screen containing the mouse cursor if no dock screen
         let mouseScreen = NSScreen.screens.first { screen in
             screen.frame.contains(NSEvent.mouseLocation)
         }
+        let screen = dock.screen ?? mouseScreen ?? NSScreen.screens[0]
 
-        let screen = screenWithDock ?? mouseScreen ?? NSScreen.screens[0]
-        let fullFrame = screen.frame
-        let visibleFrame = screen.visibleFrame
-
-        // If this screen has a bottom Dock, sit on top of it
-        // Otherwise, sit at the bottom of the screen
-        let dockTop = visibleFrame.minY
         // Offset by the empty space below the feet in the sprite
         let feetOffset = CGFloat(SpriteRenderer.feetBottomPadding)
-        let y = (dockTop > fullFrame.minY + 10) ? dockTop - feetOffset : fullFrame.minY
+        let y = dock.isVisible ? dock.dockTopY - feetOffset : screen.frame.minY - 10
 
-        return NSPoint(
-            x: fullFrame.midX - size.width / 2 + 100,
-            y: y
-        )
+        // Center within the dock icon area
+        let x = dock.iconAreaX + dock.iconAreaWidth / 2 - size.width / 2 + 100
+
+        return NSPoint(x: x, y: y)
     }
 }

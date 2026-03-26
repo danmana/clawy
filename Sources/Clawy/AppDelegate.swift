@@ -11,6 +11,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var bubbleFallbackTimer: Timer?
     private var idleWalkTimer: Timer?
     private var walkAnimationTimer: Timer?
+    private var dockPollTimer: Timer?
+    private var lastDockVisible: Bool?
     private var config = Config.load()
     private var sizeMenuItems: [PetSize: NSMenuItem] = [:]
     private var currentTerminalPid: Int32 = 0
@@ -120,6 +122,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
 
+        // Poll dock visibility changes (auto-hide show/hide)
+        lastDockVisible = DockGeometry.current().isVisible
+        dockPollTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            self?.checkDockVisibility()
+        }
+
         // Start idle walk timer
         scheduleIdleWalk()
 
@@ -200,13 +208,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        let screen = NSScreen.screens.first { $0.frame.contains(petWindow.frame.origin) }
-            ?? NSScreen.screens[0]
-        let screenWidth = screen.frame.width
-        let walkWidth = screenWidth * 0.6
-        let walkMargin = (screenWidth - walkWidth) / 2
-        let minX = screen.frame.minX + walkMargin
-        let maxX = screen.frame.minX + walkMargin + walkWidth - petWindow.frame.width
+        let dock = DockGeometry.current()
+        let minX = dock.iconAreaX
+        let maxX = dock.iconAreaX + dock.iconAreaWidth - petWindow.frame.width
+        guard minX < maxX else { return }
         let targetX = CGFloat.random(in: minX...maxX)
 
         walkTo(targetX: targetX)
@@ -325,6 +330,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Actions
 
     func applicationWillTerminate(_ notification: Notification) {
+        dockPollTimer?.invalidate()
         sessionAggregator?.stop()
         HookInstaller.uninstall()
     }
@@ -352,6 +358,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func screenDidChange(_ notification: Notification) {
         petWindow.updateVerticalPosition()
+    }
+
+    private func checkDockVisibility() {
+        let dock = DockGeometry.current()
+        let wasVisible = lastDockVisible
+        lastDockVisible = dock.isVisible
+
+        if wasVisible != dock.isVisible {
+            NSLog("Clawy: Dock visibility changed — visible=\(dock.isVisible), autoHide=\(dock.autoHide)")
+            petWindow.updateVerticalPosition()
+        }
     }
 
 
